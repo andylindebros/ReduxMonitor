@@ -2,6 +2,8 @@
 
 ReduxMonitor offers monitoring your [ReSwift](https://github.com/ReSwift/ReSwift) actions and state together with `redux-dev-tools`
 
+![Demo](https://github.com/lindebrothers/ReduxMonitor/Example/ReduxMonitorDemo.gif)
+
 ## Dependencies
 Start and run [remotedev-server docker](https://github.com/jhen0409/docker-remotedev-server) image :
 ```
@@ -16,7 +18,7 @@ import ReduxMonitor
 import SwiftUI
 
 class AppState: ObservableObject {
-    @Published fileprivate(set) var name = "My Name"
+    @Published fileprivate(set) var name = "Andy"
 
     static func reducer(action: Action, state: AppState?) -> AppState {
         let state = state ?? AppState()
@@ -48,11 +50,13 @@ struct ContentView: View {
         state = store.state
     }
     
+    var randomStrings = ["Andy", "Hanna", "Moa", "Peter", "Ruby", "Tom", "Marcus", "Simon", "Jenny", "Mary", "Zlatan"]
+    
     var body: some View {
         Button(action: {
-            store.dispatch(SomeAction(payload: "Awesome!"))
+            store.dispatch(SomeAction(payload: randomStrings.filter{ $0 != state.name }.randomElement()!))
         }) {
-            Text(state.name)
+            Text("Hello \(state.name)!")
         }
     }
 }

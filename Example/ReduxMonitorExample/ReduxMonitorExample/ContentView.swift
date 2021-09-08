@@ -1,10 +1,10 @@
-import ReSwift
-import ReduxMonitor
-import SwiftUI
 import Logger
+import ReduxMonitor
+import ReSwift
+import SwiftUI
 
 class AppState: ObservableObject {
-    @Published fileprivate(set) var name = "Some string"
+    @Published fileprivate(set) var name = "Andy"
 
     static func reducer(action: Action, state: AppState?) -> AppState {
         let state = state ?? AppState()
@@ -21,7 +21,7 @@ class AppState: ObservableObject {
         initState: AppState? = nil
     ) -> Store<AppState> {
         let store = Store<AppState>(reducer: AppState.reducer, state: initState, middleware: [
-            MonitorMiddleware.create(monitor: ReduxMonitor(logger: Logger.shared))
+            MonitorMiddleware.create(monitor: ReduxMonitor(logger: Logger.shared)),
         ])
 
         return store
@@ -32,6 +32,7 @@ extension ReSwiftInit: Encodable {
     enum CodingKeys: CodingKey {
         case name
     }
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode("\(type(of: self))", forKey: .name)
@@ -60,13 +61,13 @@ struct ContentView: View {
         store = AppState.createStore()
         state = store.state
     }
-    
+
+    var randomStrings = ["Andy", "Hanna", "Moa", "Peter", "Ruby", "Tom", "Marcus", "Simon", "Jenny", "Mary", "Zlatan"]
     var body: some View {
         Button(action: {
-            store.dispatch(SomeAction(payload: "Awesome!"))
+            store.dispatch(SomeAction(payload: randomStrings.filter { $0 != state.name }.randomElement()!))
         }) {
-            Text(state.name)
+            Text("Hello \(state.name)!")
         }
     }
 }
-
