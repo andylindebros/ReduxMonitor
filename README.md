@@ -81,4 +81,4 @@ struct SomeAction: Action, Encodable {
     var payload: String
 }
 ```
-You should now be able to see your monitor your state on [http://localhost:8000](http://localhost:8000)
+You should now be able to monitor your state and actions on [http://localhost:8000](http://localhost:8000)
