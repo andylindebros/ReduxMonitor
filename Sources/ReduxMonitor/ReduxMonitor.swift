@@ -1,18 +1,15 @@
 import Foundation
-import Logger
-import ReSwift
 
 public protocol ReduxMonitorProvider {
     var url: URL? { get }
-    var logger: LoggerProvider? { get }
     func connect()
-    func log(_ message: String, _ obj: Any, _ level: LogLevel)
-    func addTask(action: AnyEncodable, state: AnyEncodable)
+    func publish(action: AnyEncodable, state: AnyEncodable)
 }
+
+#if DEBUG
 
 public class ReduxMonitor: NSObject, ReduxMonitorProvider {
     public private(set) var url: URL?
-    public private(set) var logger: LoggerProvider?
 
     private var socketId: String?
     private var urlSession: URLSession!
@@ -20,9 +17,8 @@ public class ReduxMonitor: NSObject, ReduxMonitorProvider {
     private var counter = AtomicInteger(value: 0)
     private var queue: OperationQueue
 
-    public init(url: URL? = URL(string: "ws://0.0.0.0:8000/socketcluster/?transport=websocket"), logger: LoggerProvider? = nil) {
+    public init(url: URL? = URL(string: "ws://0.0.0.0:8000/socketcluster/?transport=websocket")) {
         self.url = url
-        self.logger = logger
 
         queue = OperationQueue()
         queue.maxConcurrentOperationCount = 1
@@ -48,11 +44,7 @@ public extension ReduxMonitor {
         websocketTask.resume()
     }
 
-    func log(_ message: String, _ obj: Any = "", _ level: LogLevel = .debug) {
-        logger?.publish(message: "🔌 \(message)", obj: obj, level: level)
-    }
-
-    func addTask(action: AnyEncodable, state: AnyEncodable) {
+    func publish(action: AnyEncodable, state: AnyEncodable) {
         queue.addOperation(
             SendActionOperation(action: action, state: state, client: self)
         )
@@ -70,13 +62,17 @@ extension ReduxMonitor {
 // MARK: Private methods
 
 extension ReduxMonitor {
+    private func log(_ message: String, _ obj: Any = "") {
+        print("🔌 \(message)", obj)
+    }
+
     private func send<Model: Encodable>(_ model: Model) {
         do {
             let encoder = JSONEncoder()
             let jsonData = try encoder.encode(model)
             sendString(String(data: jsonData, encoding: .utf8))
         } catch let e {
-            log("Failed to send with error", e.localizedDescription, .error)
+            log("Failed to send with error", e.localizedDescription)
         }
     }
 
@@ -87,7 +83,7 @@ extension ReduxMonitor {
 
         websocketTask.send(textMessage) { [weak self] error in
             if let error = error {
-                self?.log("Could not send string with error", error.localizedDescription, .error)
+                self?.log("Could not send string with error", error.localizedDescription)
             }
         }
     }
@@ -104,7 +100,7 @@ extension ReduxMonitor {
             switch result {
             case let .failure(error):
                 self.cancel()
-                return self.log("receive message with error", error.localizedDescription, .error)
+                return self.log("receive message with error", error.localizedDescription)
 
             case let .success(message):
                 switch message {
@@ -154,20 +150,16 @@ extension ReduxMonitor: URLSessionWebSocketDelegate {
     }
 }
 
-#if DEBUG
+#endif
+
 public struct ReduxMonitorMock: ReduxMonitorProvider {
     public var url: URL?
-
-    public var logger: LoggerProvider?
 
     public func connect() {}
 
     public init() {}
 
-    public func log(_ message: String, _ obj: Any, _ level: LogLevel) {}
-
-    public func addTask(action: AnyEncodable, state: AnyEncodable) {}
+    public func publish(action: AnyEncodable, state: AnyEncodable) {}
 }
 
 struct Empty: Codable {}
-#endif

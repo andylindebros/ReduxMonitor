@@ -1,6 +1,7 @@
-# ReduxMonitor for your ReSwift project
+# ReduxMonitor
+*Monitors the state and actions of your Swift Redux Project*
 
-ReduxMonitor offers monitoring your [ReSwift](https://github.com/ReSwift/ReSwift) actions and state together with `redux-dev-tools`
+ReduxMonitor is a monitoring tool that communicates with `redux-dev-tools`.  Use it to monitor your Redux State in your app. It's easy to integrate with just a few lines of code.
 
 ![Demo](https://github.com/lindebrothers/ReduxMonitor/blob/main/Example/ReduxMonitorDemo.gif)
 
@@ -18,7 +19,7 @@ dependencies: [
 ]
 ```
 ## Implementation
-Add ReduxMonitor middleware
+Add ReduxMonitor middleware. This example below shows an implementation for a [ReSwift](https://github.com/ReSwift/ReSwift) app but you can use any Redux app you want.
 ``` Swift
 import ReSwift
 import ReduxMonitor
@@ -38,15 +39,45 @@ class AppState: ObservableObject {
         return state
     }
 
+    private static var isDevelopment: Bool {
+    #if DEBUG
+        return true
+    #else
+        return false
+    #endif
+    }
+
     static func createStore(
         initState: AppState? = nil
     ) -> Store<AppState> {
-        let store = Store<AppState>(reducer: AppState.reducer, state: initState, middleware: [
-            MonitorMiddleware.create(monitor: ReduxMonitor())
-        ])
+        var middlewares = [Middleware<AppState>]()
+        if Self.isDevelopment {
+            middlewares.append(AppState.createReduxMontitorMiddleware(monitor: ReduxMonitor()))
+        }
+        let store = Store<AppState>(reducer: AppState.reducer, state: initState, middleware: middlewares)
 
         return store
     }
+    
+#if DEBUG
+    private static func createReduxMontitorMiddleware(monitor: ReduxMonitorProvider) -> Middleware<Any> {
+        return { dispatch, state in
+            monitor.connect()
+            return { next in
+                { action in
+                    let newAction: Void = next(action)
+                    let newState = state()
+                    if let encodableAction = action as? Encodable, let encodableState = newState as? Encodable {
+                        monitor.publish(action: AnyEncodable(encodableAction), state: AnyEncodable(encodableState))
+                    } else {
+                        print("Could not monitor action because either state or action does not conform to encodable", action)
+                    }
+                    return newAction
+                }
+            }
+        }
+    }
+#endif
 }
 
 struct ContentView: View {

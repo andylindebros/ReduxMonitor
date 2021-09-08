@@ -1,10 +1,22 @@
 import Foundation
-import ReSwift
+
+#if DEBUG
 
 struct Handshake: Codable {
     var event: String = "#handshake"
     var data: [String: String]
     var cid: Int
+}
+
+public struct AnyEncodable: Encodable {
+    public var value: Encodable
+    public init(_ value: Encodable) {
+        self.value = value
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try value.encode(to: encoder)
+    }
 }
 
 public final class AtomicInteger {
@@ -107,3 +119,5 @@ struct SessionModel: Codable {
     var isAuthenticated: Bool
     var pingTimeout: Int
 }
+
+#endif

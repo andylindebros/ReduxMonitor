@@ -1,5 +1,7 @@
 import Foundation
 
+#if DEBUG
+
 class SendActionOperation: Operation {
     let action: AnyEncodable
     let state: AnyEncodable
@@ -16,3 +18,5 @@ class SendActionOperation: Operation {
         client.send(action: action, state: state)
     }
 }
+
+#endif

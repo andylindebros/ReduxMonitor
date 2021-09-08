@@ -1,4 +1,3 @@
-import Logger
 import ReduxMonitor
 import ReSwift
 import SwiftUI
@@ -17,15 +16,45 @@ class AppState: ObservableObject {
         return state
     }
 
+    private static var isDevelopment: Bool {
+#if DEBUG
+        return true
+#else
+        return false
+#endif
+    }
+
     static func createStore(
         initState: AppState? = nil
     ) -> Store<AppState> {
-        let store = Store<AppState>(reducer: AppState.reducer, state: initState, middleware: [
-            MonitorMiddleware.create(monitor: ReduxMonitor(logger: Logger.shared)),
-        ])
+        var middlewares = [Middleware<AppState>]()
+        if Self.isDevelopment {
+            middlewares.append(AppState.createReduxMontitorMiddleware(monitor: ReduxMonitor()))
+        }
+        let store = Store<AppState>(reducer: AppState.reducer, state: initState, middleware: middlewares)
 
         return store
     }
+
+#if DEBUG
+    private static func createReduxMontitorMiddleware(monitor: ReduxMonitorProvider) -> Middleware<Any> {
+        return { dispatch, state in
+            monitor.connect()
+            return { next in
+                { action in
+                    let newAction: Void = next(action)
+                    let newState = state()
+                    if let encodableAction = action as? Encodable, let encodableState = newState as? Encodable {
+                        monitor.publish(action: AnyEncodable(encodableAction), state: AnyEncodable(encodableState))
+                    } else {
+                        print("Could not monitor action because either state or action does not conform to encodable", action)
+                    }
+                    return newAction
+                }
+            }
+        }
+    }
+#endif
 }
 
 extension ReSwiftInit: Encodable {
