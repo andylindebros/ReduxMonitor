@@ -1,4 +1,4 @@
-# ReduxMonitor
+# ReduxMonitor for your ReSwift project
 
 ReduxMonitor offers monitoring your [ReSwift](https://github.com/ReSwift/ReSwift) actions and state together with `redux-dev-tools`
 
