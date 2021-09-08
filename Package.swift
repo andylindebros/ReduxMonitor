@@ -10,7 +10,8 @@ let package = Package(
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
             name: "ReduxMonitor",
-            targets: ["ReduxMonitor"]),
+            targets: ["ReduxMonitor"]
+        ),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -25,9 +26,12 @@ let package = Package(
             dependencies: [
                 .product(name: "ReSwift", package: "ReSwift"),
                 .product(name: "Logger", package: "Logger"),
-            ]),
+            ],
+            exclude: ["Example"]
+        ),
         .testTarget(
             name: "ReduxMonitorTests",
-            dependencies: ["ReduxMonitor"]),
+            dependencies: ["ReduxMonitor"]
+        ),
     ]
 )

@@ -7,7 +7,6 @@ struct Handshake: Codable {
     var cid: Int
 }
 
-
 public final class AtomicInteger {
     private let lock = DispatchSemaphore(value: 1)
     private var _value: Int
@@ -44,27 +43,27 @@ public final class AtomicInteger {
     }
 }
 
-public struct EmitObject<MonitorEvent: Encodable> : Encodable {
+public struct EmitObject: Encodable {
     public init(cid: Int = 0, monitorEvent: MonitorEvent) {
         self.cid = cid
-        self.data = monitorEvent
+        data = monitorEvent
     }
-    
+
     public var event: String = "log"
     public var cid: Int
     public var data: MonitorEvent
 }
 
-public struct MonitorEvent<StateObj: Encodable>: Encodable {
-    public init(action: ActionObject, payload: StateObj, id: String, type: String = "ACTION") {
+public struct MonitorEvent: Encodable {
+    public init(action: ActionObject, payload: AnyEncodable, id: String, type: String = "ACTION") {
         self.action = action
         self.payload = payload
         self.id = id
         self.type = type
     }
-    
+
     public var action: ActionObject
-    public var payload: StateObj
+    public var payload: AnyEncodable
     public var id: String
     public var type: String
 }
@@ -74,6 +73,7 @@ public struct ActionObject: Encodable {
         self.action = ReduxAction(action: action)
         self.timeStamp = timeStamp
     }
+
     public var action: ReduxAction
     public var timeStamp = Date().timeIntervalSinceReferenceDate
 }
@@ -82,23 +82,26 @@ public struct ReduxAction: Encodable {
     public init(action: AnyEncodable) {
         self.action = action
     }
+
     public var action: AnyEncodable
     public var type: String { "\(action.value.self)" }
-    
+
     enum CodingKeys: String, CodingKey {
         case type, action
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(action, forKey: .action)
         try container.encode(type, forKey: .type)
     }
 }
+
 struct SessionRaw: Codable {
     var rid: Int
     var data: SessionModel
 }
+
 struct SessionModel: Codable {
     var id: String
     var isAuthenticated: Bool

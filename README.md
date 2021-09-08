@@ -44,7 +44,7 @@ struct ContentView: View {
     let store: Store<AppState>
     @ObservedObject var state: AppState
     init() {
-        store = Store.createStore()
+        store = AppState.createStore()
         state = store.state
     }
     
@@ -77,4 +77,4 @@ struct SomeAction: Action, Encodable {
     var payload: String
 }
 ```
-You should now be able to see your monitor your state on `http://localhost:8000`
+You should now be able to see your monitor your state on [http://localhost:8000](http://localhost:8000)

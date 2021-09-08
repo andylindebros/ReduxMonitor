@@ -6,22 +6,28 @@ public protocol ReduxMonitorProvider {
     var url: URL? { get }
     var logger: LoggerProvider? { get }
     func connect()
-    func sendAction<S: Encodable>(action: AnyEncodable, state: S)
-
     func log(_ message: String, _ obj: Any, _ level: LogLevel)
+    func addTask(action: AnyEncodable, state: AnyEncodable)
 }
 
 public class ReduxMonitor: NSObject, ReduxMonitorProvider {
-    public var url: URL?
-    public var logger: LoggerProvider?
+    public private(set) var url: URL?
+    public private(set) var logger: LoggerProvider?
 
+    private var socketId: String?
     private var urlSession: URLSession!
     private var websocketTask: URLSessionWebSocketTask!
-    private(set) var socketId: String = ""
     private var counter = AtomicInteger(value: 0)
+    private var queue: OperationQueue
+
     public init(url: URL? = URL(string: "ws://0.0.0.0:8000/socketcluster/?transport=websocket"), logger: LoggerProvider? = nil) {
         self.url = url
         self.logger = logger
+
+        queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 1
+        queue.qualityOfService = .default
+        queue.isSuspended = true
 
         super.init()
         guard let url = url else {
@@ -32,16 +38,38 @@ public class ReduxMonitor: NSObject, ReduxMonitorProvider {
 
         websocketTask = session.webSocketTask(with: url)
     }
+}
 
-    public func connect() {
+// MARK: Public methods
+
+public extension ReduxMonitor {
+    func connect() {
         listen()
         websocketTask.resume()
     }
 
-    public func log(_ message: String, _ obj: Any = "", _ level: LogLevel = .debug) {
+    func log(_ message: String, _ obj: Any = "", _ level: LogLevel = .debug) {
         logger?.publish(message: "🔌 \(message)", obj: obj, level: level)
     }
 
+    func addTask(action: AnyEncodable, state: AnyEncodable) {
+        queue.addOperation(
+            SendActionOperation(action: action, state: state, client: self)
+        )
+    }
+}
+
+// MARK: Internal methods
+
+extension ReduxMonitor {
+    func send(action: AnyEncodable, state: AnyEncodable) {
+        send(createEmitObject(action: action, state: state))
+    }
+}
+
+// MARK: Private methods
+
+extension ReduxMonitor {
     private func send<Model: Encodable>(_ model: Model) {
         do {
             let encoder = JSONEncoder()
@@ -52,7 +80,7 @@ public class ReduxMonitor: NSObject, ReduxMonitorProvider {
         }
     }
 
-    private func sendString(_ str: String?, log: Bool = true) {
+    private func sendString(_ str: String?) {
         guard let str = str else { return }
 
         let textMessage = URLSessionWebSocketTask.Message.string(str)
@@ -64,10 +92,10 @@ public class ReduxMonitor: NSObject, ReduxMonitorProvider {
         }
     }
 
-    public func sendAction<S: Encodable>(action: AnyEncodable, state: S) {
-        if socketId != "" {
-            send(EmitObject(monitorEvent: MonitorEvent(action: ActionObject(action: action), payload: state, id: socketId)))
-        }
+    private func createEmitObject(action: AnyEncodable, state: AnyEncodable) -> EmitObject {
+        let monitorEvent = MonitorEvent(action: ActionObject(action: action), payload: state, id: socketId ?? "add later")
+
+        return EmitObject(monitorEvent: monitorEvent)
     }
 
     private func listen() {
@@ -82,7 +110,7 @@ public class ReduxMonitor: NSObject, ReduxMonitorProvider {
                 switch message {
                 case let .string(text):
                     if text == "#1" {
-                        self.sendString("#2", log: false)
+                        self.sendString("#2")
                         return self.listen()
                     }
 
@@ -104,13 +132,14 @@ public class ReduxMonitor: NSObject, ReduxMonitorProvider {
             let decoder = JSONDecoder()
             let session = try decoder.decode(SessionRaw.self, from: data)
             socketId = session.data.id
-
+            queue.isSuspended = false
         } catch {}
     }
 
     private func cancel() {
-        socketId = ""
+        socketId = nil
         websocketTask.cancel(with: .goingAway, reason: nil)
+        queue.isSuspended = true
     }
 }
 
@@ -135,8 +164,10 @@ public struct ReduxMonitorMock: ReduxMonitorProvider {
 
     public init() {}
 
-    public func sendAction<S: Encodable>(action: AnyEncodable, state: S) {}
-
     public func log(_ message: String, _ obj: Any, _ level: LogLevel) {}
+
+    public func addTask(action: AnyEncodable, state: AnyEncodable) {}
 }
+
+struct Empty: Codable {}
 #endif
