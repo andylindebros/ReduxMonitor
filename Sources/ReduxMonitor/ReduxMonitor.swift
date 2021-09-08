@@ -161,5 +161,3 @@ public struct ReduxMonitorMock: ReduxMonitorProvider {
 
     public func publish(action: AnyEncodable, state: AnyEncodable) {}
 }
-
-struct Empty: Codable {}
