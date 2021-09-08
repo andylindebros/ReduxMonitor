@@ -15,7 +15,7 @@ docker run -d -p 8000:8000 jhen0409/remotedev-server
 Install ReduxMonitor using Swift Package Manager
 ```Swift
 dependencies: [
-    .package(url: "https://github.com/lindebrothers/ReduxMonitor", from: "0.0.0"),
+    .package(url: "https://github.com/lindebrothers/ReduxMonitor", from: "1.0.0"),
 ]
 ```
 ## Implementation
