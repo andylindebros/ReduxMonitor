@@ -2,12 +2,6 @@ import Foundation
 
 #if DEBUG
 
-struct Handshake: Codable {
-    var event: String = "#handshake"
-    var data: [String: String]
-    var cid: Int
-}
-
 public struct AnyEncodable: Encodable {
     public var value: Encodable
     public init(_ value: Encodable) {
@@ -19,7 +13,13 @@ public struct AnyEncodable: Encodable {
     }
 }
 
-public final class AtomicInteger {
+struct Handshake: Codable {
+    var event: String = "#handshake"
+    var data: [String: String]
+    var cid: Int
+}
+
+final class AtomicInteger {
     private let lock = DispatchSemaphore(value: 1)
     private var _value: Int
 
@@ -55,7 +55,7 @@ public final class AtomicInteger {
     }
 }
 
-public struct EmitObject: Encodable {
+struct EmitObject: Encodable {
     public init(cid: Int = 0, monitorEvent: MonitorEvent) {
         self.cid = cid
         data = monitorEvent
@@ -66,7 +66,7 @@ public struct EmitObject: Encodable {
     public var data: MonitorEvent
 }
 
-public struct MonitorEvent: Encodable {
+struct MonitorEvent: Encodable {
     public init(action: ActionObject, payload: AnyEncodable, id: String, type: String = "ACTION") {
         self.action = action
         self.payload = payload
@@ -80,7 +80,7 @@ public struct MonitorEvent: Encodable {
     public var type: String
 }
 
-public struct ActionObject: Encodable {
+struct ActionObject: Encodable {
     public init(action: AnyEncodable, timeStamp: TimeInterval = Date().timeIntervalSinceReferenceDate) {
         self.action = ReduxAction(action: action)
         self.timeStamp = timeStamp
@@ -90,7 +90,7 @@ public struct ActionObject: Encodable {
     public var timeStamp = Date().timeIntervalSinceReferenceDate
 }
 
-public struct ReduxAction: Encodable {
+struct ReduxAction: Encodable {
     public init(action: AnyEncodable) {
         self.action = action
     }
