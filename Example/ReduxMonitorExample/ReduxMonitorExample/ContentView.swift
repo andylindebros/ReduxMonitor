@@ -16,21 +16,13 @@ class AppState: ObservableObject {
         return state
     }
 
-    private static var isDevelopment: Bool {
-#if DEBUG
-        return true
-#else
-        return false
-#endif
-    }
-
     static func createStore(
         initState: AppState? = nil
     ) -> Store<AppState> {
         var middlewares = [Middleware<AppState>]()
-        if Self.isDevelopment {
-            middlewares.append(AppState.createReduxMontitorMiddleware(monitor: ReduxMonitor()))
-        }
+#if DEBUG
+        middlewares.append(AppState.createReduxMontitorMiddleware(monitor: ReduxMonitor()))
+#endif
         let store = Store<AppState>(reducer: AppState.reducer, state: initState, middleware: middlewares)
 
         return store
