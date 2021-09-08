@@ -2,7 +2,7 @@
 
 ReduxMonitor offers monitoring your [ReSwift](https://github.com/ReSwift/ReSwift) actions and state together with `redux-dev-tools`
 
-![Demo](https://github.com/lindebrothers/ReduxMonitor/Example/ReduxMonitorDemo.gif)
+![Demo](https://github.com/lindebrothers/ReduxMonitor/blob/main/Example/ReduxMonitorDemo.gif)
 
 ## Dependencies
 Start and run [remotedev-server docker](https://github.com/jhen0409/docker-remotedev-server) image :
