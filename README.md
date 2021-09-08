@@ -10,6 +10,13 @@ Start and run [remotedev-server docker](https://github.com/jhen0409/docker-remot
 docker run -d -p 8000:8000 jhen0409/remotedev-server
 ```
 
+## Installation
+Install ReduxMonitor using Swift Package Manager
+```Swift
+dependencies: [
+    .package(url: "https://github.com/lindebrothers/ReduxMonitor", from: "0.0.0"),
+]
+```
 ## Implementation
 Add ReduxMonitor middleware
 ``` Swift
