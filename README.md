@@ -26,6 +26,10 @@ dependencies: [
 ## Implementation
 Add ReduxMonitor middleware. This example below shows an implementation for a [ReSwift](https://github.com/ReSwift/ReSwift) app but you can use any Redux app you want.
 ``` Swift
+import ReduxMonitor
+import ReSwift
+import SwiftUI
+
 class AppState: ObservableObject, Codable {
     @Published fileprivate(set) var name = "Andy"
 
