@@ -19,6 +19,55 @@ struct Handshake: Codable {
     var cid: Int
 }
 
+struct Login: Codable {
+    var event: String = "login"
+    var data = "master"
+}
+
+public struct ActionFromMonitor: Decodable {
+    public var event: String
+    public var data: MonitorAction
+    public var cid: Int?
+}
+
+public struct MonitorAction: Decodable {
+    public var type: MonitorActionType
+    public var instanceId: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case action
+        case state
+        case instanceId
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(MonitorActionTypeIdentifier.self, forKey: .type)
+
+        switch type {
+        case .jumpToState:
+            let action = try container.decode([String: Any].self, forKey: .action)
+            let state = try container.decode(String.self, forKey: .state)
+            self.type = MonitorActionType.jumpToState(action: action, state: state)
+
+        case .action:
+            let actionString = try container.decode(String.self, forKey: .action)
+            self.type = MonitorActionType.action(action: actionString)
+        }
+    }
+}
+
+enum MonitorActionTypeIdentifier: String, Decodable {
+    case jumpToState = "DISPATCH"
+    case action = "ACTION"
+}
+
+public enum MonitorActionType {
+    case jumpToState(action: [String: Any], state: String)
+    case action(action: String)
+}
+
 final class AtomicInteger {
     private let lock = DispatchSemaphore(value: 1)
     private var _value: Int

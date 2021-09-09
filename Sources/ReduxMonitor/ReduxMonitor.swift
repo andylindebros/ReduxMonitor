@@ -1,38 +1,41 @@
 import Foundation
+import SwiftUI
 
 public protocol ReduxMonitorProvider {
     var url: URL? { get }
     func connect()
     func publish(action: AnyEncodable, state: AnyEncodable)
+
+    var monitorAction: ((MonitorAction) -> Void)? { get set }
 }
 
 #if DEBUG
 
 public class ReduxMonitor: NSObject, ReduxMonitorProvider {
     public private(set) var url: URL?
-
+    public var monitorAction: ((MonitorAction) -> Void)?
     private var socketId: String?
-    private var urlSession: URLSession!
     private var websocketTask: URLSessionWebSocketTask!
     private var counter = AtomicInteger(value: 0)
     private var queue: OperationQueue
-
-    public init(url: URL? = URL(string: "ws://0.0.0.0:8000/socketcluster/?transport=websocket")) {
+    public init(
+        url: URL? = URL(string: "ws://0.0.0.0:8000/socketcluster/?transport=websocket"))
+    {
         self.url = url
-
         queue = OperationQueue()
         queue.maxConcurrentOperationCount = 1
         queue.qualityOfService = .default
         queue.isSuspended = true
 
         super.init()
+
         guard let url = url else {
             fatalError()
         }
 
         let session = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue())
 
-        websocketTask = session.webSocketTask(with: url)
+        websocketTask = session.webSocketTask(with: url, protocols: [])
     }
 }
 
@@ -91,7 +94,7 @@ extension ReduxMonitor {
     private func createEmitObject(action: AnyEncodable, state: AnyEncodable) -> EmitObject {
         let monitorEvent = MonitorEvent(action: ActionObject(action: action), payload: state, id: socketId ?? "add later")
 
-        return EmitObject(monitorEvent: monitorEvent)
+        return EmitObject(cid: counter.incrementAndGet(), monitorEvent: monitorEvent)
     }
 
     private func listen() {
@@ -100,17 +103,27 @@ extension ReduxMonitor {
             switch result {
             case let .failure(error):
                 self.cancel()
-                return self.log("receive message with error", error.localizedDescription)
+                return self.log("receive message with error", error)
 
             case let .success(message):
                 switch message {
                 case let .string(text):
+
                     if text == "#1" {
                         self.sendString("#2")
                         return self.listen()
                     }
 
-                    self.identifySession(from: text)
+                    if self.identifySession(from: text) {
+                        self.send(Login())
+                        self.listen()
+                        return
+                    }
+
+                    if self.identifyActionFromMonitor(from: text) {
+                        self.listen()
+                        return
+                    }
 
                 case .data:
                     break
@@ -122,14 +135,33 @@ extension ReduxMonitor {
         }
     }
 
-    private func identifySession(from str: String) {
-        guard let data = str.data(using: .utf8) else { return }
+    private func identifyActionFromMonitor(from str: String) -> Bool {
+        guard let data = str.data(using: .utf8) else { return false }
+        let decoder = JSONDecoder()
+
+        do {
+            let actionFromMonitor = try decoder.decode(ActionFromMonitor.self, from: data)
+
+            DispatchQueue.main.async {
+                self.monitorAction?(actionFromMonitor.data)
+            }
+
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func identifySession(from str: String) -> Bool {
+        guard let data = str.data(using: .utf8) else { return false }
         do {
             let decoder = JSONDecoder()
             let session = try decoder.decode(SessionRaw.self, from: data)
             socketId = session.data.id
             queue.isSuspended = false
+            return true
         } catch {}
+        return false
     }
 
     private func cancel() {
@@ -154,6 +186,8 @@ extension ReduxMonitor: URLSessionWebSocketDelegate {
 
 public struct ReduxMonitorMock: ReduxMonitorProvider {
     public var url: URL?
+
+    public var monitorAction: ((MonitorAction) -> Void)?
 
     public func connect() {}
 
