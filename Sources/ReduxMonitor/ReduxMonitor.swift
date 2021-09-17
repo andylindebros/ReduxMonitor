@@ -29,14 +29,6 @@ public class ReduxMonitor: NSObject, ReduxMonitorProvider {
         queue.isSuspended = true
 
         super.init()
-
-        guard let url = url else {
-            fatalError()
-        }
-
-        let session = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue())
-
-        websocketTask = session.webSocketTask(with: url, protocols: [])
     }
 }
 
@@ -44,6 +36,11 @@ public class ReduxMonitor: NSObject, ReduxMonitorProvider {
 
 public extension ReduxMonitor {
     func connect() {
+        guard let url = url else {
+            fatalError()
+        }
+        let session = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue())
+        websocketTask = session.webSocketTask(with: url, protocols: [])
         listen()
         websocketTask.resume()
         sendPing()
