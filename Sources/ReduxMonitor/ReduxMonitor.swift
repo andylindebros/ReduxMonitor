@@ -18,6 +18,7 @@ public class ReduxMonitor: NSObject, ReduxMonitorProvider {
     private var websocketTask: URLSessionWebSocketTask!
     private var counter = AtomicInteger(value: 0)
     private var queue: OperationQueue
+    private var retries: Int = 0
     public init(
         url: URL? = URL(string: "ws://0.0.0.0:8000/socketcluster/?transport=websocket"))
     {
@@ -103,9 +104,18 @@ extension ReduxMonitor {
             switch result {
             case let .failure(error):
                 self.cancel()
-                return self.log("receive message with error", error)
+                self.log("receive message with error", error)
+
+                self.retries += 1
+
+                if self.retries < 3 {
+                    self.connect()
+                }
+
+                return
 
             case let .success(message):
+                self.retries = 0
                 switch message {
                 case let .string(text):
 
@@ -126,7 +136,7 @@ extension ReduxMonitor {
                     }
 
                 case .data:
-                    break
+                    self.retries = 0
                 default:
                     fatalError()
                 }
