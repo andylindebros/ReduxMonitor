@@ -46,6 +46,7 @@ public extension ReduxMonitor {
     func connect() {
         listen()
         websocketTask.resume()
+        sendPing()
     }
 
     func publish(action: AnyEncodable, state: AnyEncodable) {
@@ -142,6 +143,18 @@ extension ReduxMonitor {
                 }
             }
             self.listen()
+        }
+    }
+
+    private func sendPing() {
+        websocketTask.sendPing { error in
+            if let error = error {
+                self.log("Sending PING failed: \(error)")
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                self.sendPing()
+            }
         }
     }
 
